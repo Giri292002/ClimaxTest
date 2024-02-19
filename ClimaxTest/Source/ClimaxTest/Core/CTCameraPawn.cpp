@@ -3,12 +3,14 @@
 
 #include "CTCameraPawn.h"
 
+#include "Blueprint/WidgetLayoutLibrary.h"
 #include "Camera/CameraComponent.h"
+#include "ClimaxTest/Data/CTCameraPawnData.h"
 #include "Components/SceneComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputActionValue.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -30,12 +32,6 @@ ACTCameraPawn::ACTCameraPawn()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(FName(TEXT("Camera Component")));
 	CameraComponent->SetupAttachment(SpringArmComponent);
-
-	MoveSpeed = 20.f;
-	ZoomSpeed = 100.f;
-	MinZoom = 500.f;
-	MaxZoom = 1000.f;
-	TargetZoom = 1000.f;
 }
 
 // Called when the game starts or when spawned
@@ -53,7 +49,10 @@ void ACTCameraPawn::BeginPlay()
 		}
 	}
 
+	checkf(CameraPawnData, TEXT("Camera Pawn Data is null. Consider assigning one in the editor"));
+
 	CameraTargetLocation = GetActorLocation();
+	TargetZoom = CameraPawnData->StartingZoom;
 }
 
 // Called to bind functionality to input
@@ -67,23 +66,63 @@ void ACTCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	}
 }
 
+void ACTCameraPawn::EdgeScroll()
+{
+	//Calculation to get mouse position into a 0 to -1 range.
+	FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
+
+	//Convert mouse position from screen space to world space
+	const FVector2D ViewportSize = UWidgetLayoutLibrary::GetViewportSize(GetWorld());
+	MousePosition = MousePosition * UWidgetLayoutLibrary::GetViewportScale(GetWorld());
+
+	//Put it in Range
+	MousePosition = FVector2D(MousePosition.X / ViewportSize.X, MousePosition.Y / ViewportSize.Y);
+
+	FVector2D MoveAxis = FVector2D::Zero();
+
+	//Move Right/Left
+	if (MousePosition.X > CameraPawnData->ScrollEdgeDistance && MousePosition.X <= 1.f)
+	{
+		MoveAxis.X = FMath::GetMappedRangeValueClamped(FVector2D(1.f - CameraPawnData->ScrollEdgeDistance, 1.f), FVector2D(0.f, 1.f), MousePosition.X);
+	}
+	else if (MousePosition.X < CameraPawnData->ScrollEdgeDistance && MousePosition.X > 0.f)
+	{
+		MoveAxis.X = -(FMath::GetMappedRangeValueClamped(FVector2D(0.f, CameraPawnData->ScrollEdgeDistance), FVector2D(1.f, 0.f), MousePosition.X));
+	}
+
+	//Move Up/Down
+	if (MousePosition.Y > CameraPawnData->ScrollEdgeDistance && MousePosition.Y <= 1.f)
+	{
+		MoveAxis.Y = -(FMath::GetMappedRangeValueClamped(FVector2D(1.f - CameraPawnData->ScrollEdgeDistance, 1.f), FVector2D(0.f, 1.f), MousePosition.Y));
+	}
+	else if (MousePosition.Y < CameraPawnData->ScrollEdgeDistance && MousePosition.Y > 0.f)
+	{
+		MoveAxis.Y = FMath::GetMappedRangeValueClamped(FVector2D(0.f, CameraPawnData->ScrollEdgeDistance), FVector2D(1.f, 0.f), MousePosition.Y);
+	}
+
+	
+//	MoveAxis.Y = FMath::GetMappedRangeValueClamped(FVector2D(0.f, 1.f), FVector2D(-1.f, 1.f), MousePosition.Y);
+
+	Move(FInputActionValue(MoveAxis));
+}
+
 void ACTCameraPawn::Move(const FInputActionValue& Value)
 {
 	const FVector2D VectorValue = Value.Get<FVector2D>();
-	if (VectorValue.IsNearlyZero())
+	if (VectorValue.IsNearlyZero(0.005f))
 	{
 		return;
 	}
 		
 	UE_LOG(LogTemp, Log, TEXT("Moving: %s"), *Value.ToString());
-	CameraTargetLocation = (RootComponent->GetForwardVector() * VectorValue.Y * MoveSpeed)+ (RootComponent->GetRightVector() * VectorValue.X * MoveSpeed) + CameraTargetLocation;
+	CameraTargetLocation = (RootComponent->GetForwardVector() * VectorValue.Y * CameraPawnData->MoveSpeed)+ (RootComponent->GetRightVector() * VectorValue.X * CameraPawnData->MoveSpeed) + CameraTargetLocation;
 }
 
 void ACTCameraPawn::Zoom(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("Zoom: %s"), *Value.ToString());
-	const float Zoom = Value.Get<float>() * ZoomSpeed;
-	TargetZoom = FMath::Clamp(Zoom + TargetZoom, MinZoom, MaxZoom);
+	const float Zoom = Value.Get<float>() * CameraPawnData->ZoomSpeed;
+	TargetZoom = FMath::Clamp(Zoom + TargetZoom, CameraPawnData->MinZoom, CameraPawnData->MaxZoom);
 }
 
 
@@ -92,11 +131,20 @@ void ACTCameraPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//Lerp camera movement to target location smoothly
-	const FVector InterpedLocation = UKismetMathLibrary::VInterpTo(GetActorLocation(), CameraTargetLocation, DeltaTime, MoveSpeed);
-	SetActorLocation(InterpedLocation);
+	EdgeScroll();
 
-	const float InterpedZoom = UKismetMathLibrary::FInterpTo(SpringArmComponent->TargetArmLength, TargetZoom, DeltaTime, ZoomSpeed);
-	SpringArmComponent->TargetArmLength = InterpedZoom;
+	//Lerp camera movement to target location smoothly
+	if (!(GetActorLocation().Equals(CameraTargetLocation, 1.f)))
+	{
+		const FVector InterpedLocation = UKismetMathLibrary::VInterpTo(GetActorLocation(), CameraTargetLocation, DeltaTime, CameraPawnData->MoveSpeed);
+		SetActorLocation(InterpedLocation);
+	}
+
+	if (!(FMath::IsNearlyEqual(SpringArmComponent->TargetArmLength, TargetZoom)))
+	{
+		const float InterpedZoom = UKismetMathLibrary::FInterpTo(SpringArmComponent->TargetArmLength, TargetZoom, DeltaTime, CameraPawnData->ZoomSpeed);
+		SpringArmComponent->TargetArmLength = InterpedZoom;		
+	}
+	
 }
 

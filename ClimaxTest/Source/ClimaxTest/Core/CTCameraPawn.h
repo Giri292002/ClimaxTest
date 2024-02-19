@@ -10,6 +10,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
+class UCTCameraPawnData;
 struct FInputActionValue;
 
 UCLASS()
@@ -40,23 +41,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
 	UInputMappingContext* DefaultInputContext;
 
-	UPROPERTY(EditDefaultsOnly, Category = "CT | Defaults")
-	float MoveSpeed;
-
-	UPROPERTY(EditDefaultsOnly, Category = "CT | Defaults")
-	float ZoomSpeed;
-
-	UPROPERTY(EditDefaultsOnly, Category = "CT | Defaults")
-	float MinZoom;
-
-	UPROPERTY(EditDefaultsOnly, Category = "CT | Defaults")
-	float MaxZoom;
+	UPROPERTY(EditDefaultsOnly, Category = "CT | Data")
+	const UCTCameraPawnData* CameraPawnData;
 
 	UFUNCTION()
 	void Move(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void Zoom(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void EdgeScroll();
 
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
