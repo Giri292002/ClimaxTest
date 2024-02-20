@@ -4,15 +4,21 @@
 #include "CTHUD.h"
 #include "CTCharacter.h"
 
+ACTHUD::ACTHUD()
+{
+	PreviousMousePosition = FVector2D::Zero();
+}
+
 void ACTHUD::DrawHUD()
 {
 	Super::DrawHUD();
-	if (bIsMarqueeSelecting)
+	if (bRunRectTrace)
 	{
-		FoundUnits.Empty();	
-		if (GetActorsInSelectionRectangle<ACTCharacter>(StartMousePosition, CurrentMousePosition, FoundUnits))
+		if (!CurrentMousePosition.Equals(PreviousMousePosition, 1.f))
 		{
-			if (!FoundUnits.IsEmpty())
+			PreviousMousePosition = CurrentMousePosition;
+			FoundUnits.Empty();
+			if (GetActorsInSelectionRectangle<ACTCharacter>(StartMousePosition, CurrentMousePosition, FoundUnits, false))
 			{
 				OnMarqueeSelectDelegate.Broadcast(FoundUnits);
 			}

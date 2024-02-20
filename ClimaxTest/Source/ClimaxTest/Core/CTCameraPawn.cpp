@@ -67,7 +67,7 @@ void ACTCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComponent->BindAction(MoveCameraAction, ETriggerEvent::Triggered, this, &ACTCameraPawn::MoveCamera);
 		EnhancedInputComponent->BindAction(ZoomCameraAction, ETriggerEvent::Triggered, this, &ACTCameraPawn::ZoomCamera);
 		EnhancedInputComponent->BindAction(MoveUnitAction, ETriggerEvent::Completed, UnitDirectorComponent, &UCTUnitDirectorComponent::MoveUnits);
-		EnhancedInputComponent->BindAction(SelectUnitAction, ETriggerEvent::Completed, UnitDirectorComponent, &UCTUnitDirectorComponent::SelectUnit);
+		EnhancedInputComponent->BindAction(SelectUnitAction, ETriggerEvent::Triggered, UnitDirectorComponent, &UCTUnitDirectorComponent::SelectUnit);
 		EnhancedInputComponent->BindAction(MarqueeSelectUnitAction, ETriggerEvent::Started, UnitDirectorComponent, &UCTUnitDirectorComponent::MarqueeSelectUnits);
 		EnhancedInputComponent->BindAction(MarqueeSelectUnitAction, ETriggerEvent::Completed, UnitDirectorComponent, &UCTUnitDirectorComponent::StopMarqueeSelectUnits);
 	}

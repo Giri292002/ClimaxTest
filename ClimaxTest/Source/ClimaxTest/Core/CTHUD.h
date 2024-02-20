@@ -15,11 +15,13 @@ class CLIMAXTEST_API ACTHUD : public AHUD
 	GENERATED_BODY()
 
 public:
+	ACTHUD();
+
 	UPROPERTY(BlueprintAssignable)
 	FOnMarqueeSelectSignature OnMarqueeSelectDelegate;
 
 	UFUNCTION()
-	void SetIsMarqueeSelecting(const bool InbIsDrawing) { bIsMarqueeSelecting = InbIsDrawing; }
+	void RunRectSelect(const bool InbIsDrawing) { bRunRectTrace = InbIsDrawing; }
 
 	UFUNCTION()
 	void SetStartMousePosition(FVector2D& InStartMousePosition) { StartMousePosition = InStartMousePosition; }
@@ -43,7 +45,10 @@ protected:
 	FVector2D CurrentMousePosition;
 
 	UPROPERTY()
-	bool bIsMarqueeSelecting;
+	FVector2D PreviousMousePosition;
+
+	UPROPERTY()
+	bool bRunRectTrace;
 
 	UPROPERTY()
 	TArray<ACTCharacter*> FoundUnits;

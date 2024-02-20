@@ -59,38 +59,40 @@ void UCTUnitDirectorComponent::SelectUnit()
 
 void UCTUnitDirectorComponent::MarqueeSelectUnits()
 {
-	GEngine->AddOnScreenDebugMessage(0, 0.2f, FColor::Green, TEXT("Started Selecting"));
-
 	//Store Mouse Starting Location
 	bIsMarqueeSelecting = true;
-	CTHUD->SetIsMarqueeSelecting(bIsMarqueeSelecting);
+	CTHUD->RunRectSelect(bIsMarqueeSelecting);
 
-	StartMousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
-	FVector2D PCMousePos;
-	UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(PCMousePos.X, PCMousePos.Y);
-	CTHUD->SetStartMousePosition(PCMousePos);
+	//Viewport mouse position for widgets
+	StartMousePosition = CurrentMousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
 
+	float ViewportScale = UWidgetLayoutLibrary::GetViewportScale(GetWorld());
+	FVector2D ScaledPos = StartMousePosition * ViewportScale;
+	CTHUD->SetStartMousePosition(ScaledPos);
+	CTHUD->SetCurrentMousePosition(ScaledPos);
+
+	//Update Marquee visuals
 	MarqueeWidget->AddToViewport();
+	MarqueeWidget->UpdateMarqueeTransform(StartMousePosition, CurrentMousePosition);
 }
 
 void UCTUnitDirectorComponent::StopMarqueeSelectUnits()
 {
-	GEngine->AddOnScreenDebugMessage(1, 0.2f, FColor::Green, TEXT("Stopped Selecting"));
 	bIsMarqueeSelecting = false;
-	CTHUD->SetIsMarqueeSelecting(bIsMarqueeSelecting);
+	CTHUD->RunRectSelect(bIsMarqueeSelecting);
 	MarqueeWidget->RemoveFromParent();
 }
 
 void UCTUnitDirectorComponent::DeselectUnits()
 {
-	/*if (!SelectedUnits.IsEmpty())
+	if (!SelectedUnits.IsEmpty())
 	{
 		for (auto Unit : SelectedUnits)
 		{
 			ICTUnitInterface::Execute_Deselect(Unit);
 		}
 	}
-	SelectedUnits.Empty();*/
+	SelectedUnits.Empty();
 }
 
 void UCTUnitDirectorComponent::MoveUnits()
@@ -116,13 +118,21 @@ void UCTUnitDirectorComponent::MoveUnits()
 
 void UCTUnitDirectorComponent::OnMarqueeSelectCallback(TArray<ACTCharacter*> FoundActors)
 {
-	DeselectUnits();
-
-	SelectedUnits = FoundActors;
-
-	for (ACTCharacter* Unit : SelectedUnits)
+	GEngine->AddOnScreenDebugMessage(-1, 0.2f, FColor::Green, TEXT("Marquee select callback"));
+	for (ACTCharacter* Unit : FoundActors)
 	{
 		ICTUnitInterface::Execute_Select(Unit);
+		SelectedUnits.AddUnique(Unit);
+	}
+
+	//Deslect units that are not in rectangle anymore
+	for (ACTCharacter* Unit : SelectedUnits)
+	{
+		if (FoundActors.Find(Unit) == -1)
+		{
+			ICTUnitInterface::Execute_Deselect(Unit);
+			SelectedUnits.Remove(Unit);
+		}
 	}
 }
 
@@ -131,15 +141,23 @@ void UCTUnitDirectorComponent::OnMarqueeSelectCallback(TArray<ACTCharacter*> Fou
 void UCTUnitDirectorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	//TODO: Check if player moved the mouse, only then update the marquee
+	
 	if (bIsMarqueeSelecting)
 	{
-		CurrentMousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
-		FVector2D PCMousePos;
-		UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(PCMousePos.X, PCMousePos.Y);
-		CTHUD->SetCurrentMousePosition(PCMousePos);
-		MarqueeWidget->UpdateMarqueeTransform(StartMousePosition, CurrentMousePosition);
-		GEngine->AddOnScreenDebugMessage(2, 0.2f, FColor::Green, FString::Printf(TEXT("Selecting start %s, end %s"), *StartMousePosition.ToString(), *CurrentMousePosition.ToString()));
+		//Only run trace and update widget if mouse moved
+		FVector2D MouseDelta;
+		CTPlayerController->GetInputMouseDelta(MouseDelta.X, MouseDelta.Y);
+		bool bCanRunRectSelect = FMath::Abs(MouseDelta.X) > 0.f || FMath::Abs(MouseDelta.Y) > 0.f;
+		CTHUD->RunRectSelect(bCanRunRectSelect);
+		if (bCanRunRectSelect)
+		{	
+			CurrentMousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
+			MarqueeWidget->UpdateMarqueeTransform(StartMousePosition, CurrentMousePosition);
+
+			float ViewportScale = UWidgetLayoutLibrary::GetViewportScale(GetWorld());
+			FVector2D ScaledPos = CurrentMousePosition * ViewportScale;
+			CTHUD->SetCurrentMousePosition(ScaledPos);
+		}
+		//GEngine->AddOnScreenDebugMessage(2, 0.2f, FColor::Green, FString::Printf(TEXT("Selecting start %s, end %s"), *StartMousePosition.ToString(), *CurrentMousePosition.ToString()));
 	}
 }
