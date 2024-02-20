@@ -10,6 +10,7 @@ class ACTCharacter;
 class ACTPlayerController;
 class UNiagaraSystem;
 class UCTMarqueeWidget;
+class FViewport;
 class ACTHUD;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -31,7 +32,7 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	UFUNCTION(BlueprintCallable, Category = "CT | Units")
 	void SelectUnit();
 
@@ -50,6 +51,8 @@ public:
 	UFUNCTION()
 	void OnMarqueeSelectCallback(TArray<ACTCharacter*> FoundActors);
 
+	void OnViewportSizeChanged(FViewport* ViewPort, uint32 val);
+
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
@@ -61,13 +64,16 @@ private:
 	ACTPlayerController* CTPlayerController;
 
 	UPROPERTY()
-	TArray<ACTCharacter*> SelectedUnits;
+	TSet<ACTCharacter*> SelectedUnits;
 
 	UPROPERTY()
 	FVector2D StartMousePosition;
 
 	UPROPERTY()
 	FVector2D CurrentMousePosition;
+
+	UPROPERTY()
+	float ViewportScale;
 
 	UPROPERTY()
 	bool bIsMarqueeSelecting;

@@ -37,6 +37,10 @@ void UCTUnitDirectorComponent::BeginPlay()
 	//and research how we can use it normally. Another method to go about this would be to calculate the 4 points of the box in the world space with the start mouse position and current mouse position and then do a box trace.
 	CTHUD = Cast<ACTHUD>(CTPlayerController->GetHUD());
 	CTHUD->OnMarqueeSelectDelegate.AddDynamic(this, &UCTUnitDirectorComponent::OnMarqueeSelectCallback);
+
+	ViewportScale = UWidgetLayoutLibrary::GetViewportScale(GetWorld());
+	//We need to update viewport scale when viewport is resized. Much better than putting it in tick.
+	FViewport::ViewportResizedEvent.AddUObject(this, &UCTUnitDirectorComponent::OnViewportSizeChanged);
 }
 
 void UCTUnitDirectorComponent::SelectUnit()
@@ -59,19 +63,17 @@ void UCTUnitDirectorComponent::SelectUnit()
 
 void UCTUnitDirectorComponent::MarqueeSelectUnits()
 {
-	//Store Mouse Starting Location
+	//Start marquee selecting
 	bIsMarqueeSelecting = true;
 	CTHUD->RunRectSelect(bIsMarqueeSelecting);
 
-	//Viewport mouse position for widgets
+	//Store Mouse Starting Location
 	StartMousePosition = CurrentMousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
-
-	float ViewportScale = UWidgetLayoutLibrary::GetViewportScale(GetWorld());
 	FVector2D ScaledPos = StartMousePosition * ViewportScale;
 	CTHUD->SetStartMousePosition(ScaledPos);
 	CTHUD->SetCurrentMousePosition(ScaledPos);
 
-	//Update Marquee visuals
+	//Update Marquee select visual
 	MarqueeWidget->AddToViewport();
 	MarqueeWidget->UpdateMarqueeTransform(StartMousePosition, CurrentMousePosition);
 }
@@ -85,18 +87,26 @@ void UCTUnitDirectorComponent::StopMarqueeSelectUnits()
 
 void UCTUnitDirectorComponent::DeselectUnits()
 {
-	if (!SelectedUnits.IsEmpty())
+	if (SelectedUnits.IsEmpty())
 	{
-		for (auto Unit : SelectedUnits)
-		{
-			ICTUnitInterface::Execute_Deselect(Unit);
-		}
+		return;
 	}
+
+	for (auto Unit : SelectedUnits)
+	{
+		ICTUnitInterface::Execute_Deselect(Unit);
+	}	
+
 	SelectedUnits.Empty();
 }
 
 void UCTUnitDirectorComponent::MoveUnits()
 {
+	if (SelectedUnits.IsEmpty())
+	{
+		return;
+	}
+
 	FHitResult HitResult;
 	CTPlayerController->GetHitResultUnderCursorByChannel(UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Camera), false, HitResult);
 
@@ -118,22 +128,25 @@ void UCTUnitDirectorComponent::MoveUnits()
 
 void UCTUnitDirectorComponent::OnMarqueeSelectCallback(TArray<ACTCharacter*> FoundActors)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 0.2f, FColor::Green, TEXT("Marquee select callback"));
+	TSet<ACTCharacter*> UnitsToDeselect = SelectedUnits.Difference(TSet<ACTCharacter*>(FoundActors));
+
+	//Deslect units that are not in marquee select anymore
+	for (ACTCharacter* Unit : UnitsToDeselect)
+	{
+		ICTUnitInterface::Execute_Deselect(Unit);
+		SelectedUnits.Remove(Unit);
+	}
+
 	for (ACTCharacter* Unit : FoundActors)
 	{
 		ICTUnitInterface::Execute_Select(Unit);
-		SelectedUnits.AddUnique(Unit);
+		SelectedUnits.Add(Unit);
 	}
+}
 
-	//Deslect units that are not in rectangle anymore
-	for (ACTCharacter* Unit : SelectedUnits)
-	{
-		if (FoundActors.Find(Unit) == -1)
-		{
-			ICTUnitInterface::Execute_Deselect(Unit);
-			SelectedUnits.Remove(Unit);
-		}
-	}
+void UCTUnitDirectorComponent::OnViewportSizeChanged(FViewport* ViewPort, uint32 val)
+{
+	ViewportScale = UWidgetLayoutLibrary::GetViewportScale(GetWorld());
 }
 
 
@@ -142,22 +155,24 @@ void UCTUnitDirectorComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
-	if (bIsMarqueeSelecting)
+	if (!bIsMarqueeSelecting)
 	{
-		//Only run trace and update widget if mouse moved
-		FVector2D MouseDelta;
-		CTPlayerController->GetInputMouseDelta(MouseDelta.X, MouseDelta.Y);
-		bool bCanRunRectSelect = FMath::Abs(MouseDelta.X) > 0.f || FMath::Abs(MouseDelta.Y) > 0.f;
-		CTHUD->RunRectSelect(bCanRunRectSelect);
-		if (bCanRunRectSelect)
-		{	
-			CurrentMousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
-			MarqueeWidget->UpdateMarqueeTransform(StartMousePosition, CurrentMousePosition);
-
-			float ViewportScale = UWidgetLayoutLibrary::GetViewportScale(GetWorld());
-			FVector2D ScaledPos = CurrentMousePosition * ViewportScale;
-			CTHUD->SetCurrentMousePosition(ScaledPos);
-		}
-		//GEngine->AddOnScreenDebugMessage(2, 0.2f, FColor::Green, FString::Printf(TEXT("Selecting start %s, end %s"), *StartMousePosition.ToString(), *CurrentMousePosition.ToString()));
+		return;
 	}
+
+	//Only run trace and update widget if mouse moved
+	const FVector2D PreviousMousePosition = CurrentMousePosition;
+	CurrentMousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
+	bool bCanRunRectSelect = !(CurrentMousePosition.Equals(PreviousMousePosition));
+
+	CTHUD->RunRectSelect(bCanRunRectSelect);
+
+	if (!bCanRunRectSelect)
+	{
+		return;
+	}
+
+	MarqueeWidget->UpdateMarqueeTransform(StartMousePosition, CurrentMousePosition);
+	FVector2D ScaledPos = CurrentMousePosition * ViewportScale;
+	CTHUD->SetCurrentMousePosition(ScaledPos);
 }

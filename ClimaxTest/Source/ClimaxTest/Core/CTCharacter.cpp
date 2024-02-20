@@ -18,6 +18,8 @@ ACTCharacter::ACTCharacter()
 
 	SelectedDecal = CreateDefaultSubobject<UDecalComponent>(FName(TEXT("Selected Decal")));
 	SelectedDecal->SetupAttachment(GetMesh());
+
+	GetMesh()->CustomDepthStencilValue = 1;
 }
 
 // Called when the game starts or when spawned
@@ -31,11 +33,13 @@ void ACTCharacter::BeginPlay()
 void ACTCharacter::Select_Implementation()
 {
 	SelectedDecal->SetVisibility(true);
+	GetMesh()->SetRenderCustomDepth(true);
 }
 
 void ACTCharacter::Deselect_Implementation()
 {
 	SelectedDecal->SetVisibility(false);
+	GetMesh()->SetRenderCustomDepth(false);
 }
 
 // Called every frame

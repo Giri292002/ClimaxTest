@@ -15,8 +15,6 @@ class CLIMAXTEST_API ACTHUD : public AHUD
 	GENERATED_BODY()
 
 public:
-	ACTHUD();
-
 	UPROPERTY(BlueprintAssignable)
 	FOnMarqueeSelectSignature OnMarqueeSelectDelegate;
 
@@ -43,9 +41,6 @@ protected:
 
 	UPROPERTY()
 	FVector2D CurrentMousePosition;
-
-	UPROPERTY()
-	FVector2D PreviousMousePosition;
 
 	UPROPERTY()
 	bool bRunRectTrace;
