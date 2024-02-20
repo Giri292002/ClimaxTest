@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "../AI/CTUnitInterface.h"
 #include "CTCharacter.generated.h"
 
 UCLASS()
-class CLIMAXTEST_API ACTCharacter : public ACharacter
+class CLIMAXTEST_API ACTCharacter : public ACharacter, public ICTUnitInterface
 {
 	GENERATED_BODY()
 
@@ -16,8 +17,16 @@ public:
 	ACTCharacter();
 
 protected:
+	UPROPERTY(EditDefaultsOnly, Category = "CT | Components")
+	UDecalComponent* SelectedDecal;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	//--- ICTUnitInterface Implementation Begin ---
+	virtual void Select_Implementation() override;
+	virtual void Deselect_Implementation() override;
+	//--- ICTUnitInterface Implementation End ---
 
 public:	
 	// Called every frame

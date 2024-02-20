@@ -11,6 +11,7 @@ class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
 class UCTCameraPawnData;
+class UCTUnitDirectorComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -32,11 +33,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "CT | Components")
 	UCameraComponent* CameraComponent;
 
-	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
-	UInputAction* MoveAction;
+	UPROPERTY(EditDefaultsOnly, Category = "CT | Components")
+	UCTUnitDirectorComponent* UnitDirectorComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
-	UInputAction* ZoomAction;
+	UInputAction* MoveCameraAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
+	UInputAction* ZoomCameraAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
+	UInputAction* MoveUnitAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
+	UInputAction* SelectUnitAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
+	UInputAction* MarqueeSelectUnitAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
 	UInputMappingContext* DefaultInputContext;
@@ -45,10 +58,10 @@ protected:
 	const UCTCameraPawnData* CameraPawnData;
 
 	UFUNCTION()
-	void Move(const FInputActionValue& Value);
+	void MoveCamera(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void Zoom(const FInputActionValue& Value);
+	void ZoomCamera(const FInputActionValue& Value);
 
 	UFUNCTION()
 	void EdgeScroll();
@@ -69,5 +82,4 @@ private:
 
 	UPROPERTY()
 	float TargetZoom;
-
 };
