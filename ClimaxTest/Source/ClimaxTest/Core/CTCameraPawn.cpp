@@ -3,6 +3,7 @@
 
 #include "CTCameraPawn.h"
 
+#include "../Components/CTUnitDirectorComponent.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "ClimaxTest/Data/CTCameraPawnData.h"
@@ -32,6 +33,8 @@ ACTCameraPawn::ACTCameraPawn()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(FName(TEXT("Camera Component")));
 	CameraComponent->SetupAttachment(SpringArmComponent);
+
+	UnitDirectorComponent = CreateDefaultSubobject<UCTUnitDirectorComponent>(FName(TEXT("Unit Director")));
 }
 
 // Called when the game starts or when spawned
@@ -61,8 +64,12 @@ void ACTCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACTCameraPawn::Move);
-		EnhancedInputComponent->BindAction(ZoomAction, ETriggerEvent::Triggered, this, &ACTCameraPawn::Zoom);
+		EnhancedInputComponent->BindAction(MoveCameraAction, ETriggerEvent::Triggered, this, &ACTCameraPawn::MoveCamera);
+		EnhancedInputComponent->BindAction(ZoomCameraAction, ETriggerEvent::Triggered, this, &ACTCameraPawn::ZoomCamera);
+		EnhancedInputComponent->BindAction(MoveUnitAction, ETriggerEvent::Completed, UnitDirectorComponent, &UCTUnitDirectorComponent::MoveUnits);
+		EnhancedInputComponent->BindAction(SelectUnitAction, ETriggerEvent::Triggered, UnitDirectorComponent, &UCTUnitDirectorComponent::SelectUnit);
+		EnhancedInputComponent->BindAction(MarqueeSelectUnitAction, ETriggerEvent::Started, UnitDirectorComponent, &UCTUnitDirectorComponent::MarqueeSelectUnits);
+		EnhancedInputComponent->BindAction(MarqueeSelectUnitAction, ETriggerEvent::Completed, UnitDirectorComponent, &UCTUnitDirectorComponent::StopMarqueeSelectUnits);
 	}
 }
 
@@ -70,7 +77,6 @@ void ACTCameraPawn::EdgeScroll()
 {
 	//Calculation to get mouse position into a 0 to -1 range.
 	FVector2D MousePosition = UWidgetLayoutLibrary::GetMousePositionOnViewport(GetWorld());
-
 	//Convert mouse position from screen space to world space
 	const FVector2D ViewportSize = UWidgetLayoutLibrary::GetViewportSize(GetWorld());
 	MousePosition = MousePosition * UWidgetLayoutLibrary::GetViewportScale(GetWorld());
@@ -80,7 +86,7 @@ void ACTCameraPawn::EdgeScroll()
 
 	FVector2D MoveAxis = FVector2D::Zero();
 
-	//Move Right/Left
+	//Move Camera Right/Left
 	if (MousePosition.X > CameraPawnData->ScrollEdgeDistance && MousePosition.X <= 1.f)
 	{
 		MoveAxis.X = FMath::GetMappedRangeValueClamped(FVector2D(1.f - CameraPawnData->ScrollEdgeDistance, 1.f), FVector2D(0.f, 1.f), MousePosition.X);
@@ -90,7 +96,7 @@ void ACTCameraPawn::EdgeScroll()
 		MoveAxis.X = -(FMath::GetMappedRangeValueClamped(FVector2D(0.f, CameraPawnData->ScrollEdgeDistance), FVector2D(1.f, 0.f), MousePosition.X));
 	}
 
-	//Move Up/Down
+	//Move Camera Up/Down
 	if (MousePosition.Y > CameraPawnData->ScrollEdgeDistance && MousePosition.Y <= 1.f)
 	{
 		MoveAxis.Y = -(FMath::GetMappedRangeValueClamped(FVector2D(1.f - CameraPawnData->ScrollEdgeDistance, 1.f), FVector2D(0.f, 1.f), MousePosition.Y));
@@ -103,10 +109,10 @@ void ACTCameraPawn::EdgeScroll()
 	
 //	MoveAxis.Y = FMath::GetMappedRangeValueClamped(FVector2D(0.f, 1.f), FVector2D(-1.f, 1.f), MousePosition.Y);
 
-	Move(FInputActionValue(MoveAxis));
+	MoveCamera(FInputActionValue(MoveAxis));
 }
 
-void ACTCameraPawn::Move(const FInputActionValue& Value)
+void ACTCameraPawn::MoveCamera(const FInputActionValue& Value)
 {
 	const FVector2D VectorValue = Value.Get<FVector2D>();
 	if (VectorValue.IsNearlyZero(0.005f))
@@ -118,13 +124,12 @@ void ACTCameraPawn::Move(const FInputActionValue& Value)
 	CameraTargetLocation = (RootComponent->GetForwardVector() * VectorValue.Y * CameraPawnData->MoveSpeed)+ (RootComponent->GetRightVector() * VectorValue.X * CameraPawnData->MoveSpeed) + CameraTargetLocation;
 }
 
-void ACTCameraPawn::Zoom(const FInputActionValue& Value)
+void ACTCameraPawn::ZoomCamera(const FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("Zoom: %s"), *Value.ToString());
 	const float Zoom = Value.Get<float>() * CameraPawnData->ZoomSpeed;
 	TargetZoom = FMath::Clamp(Zoom + TargetZoom, CameraPawnData->MinZoom, CameraPawnData->MaxZoom);
 }
-
 
 // Called every frame
 void ACTCameraPawn::Tick(float DeltaTime)
@@ -143,7 +148,7 @@ void ACTCameraPawn::Tick(float DeltaTime)
 	if (!(FMath::IsNearlyEqual(SpringArmComponent->TargetArmLength, TargetZoom)))
 	{
 		const float InterpedZoom = UKismetMathLibrary::FInterpTo(SpringArmComponent->TargetArmLength, TargetZoom, DeltaTime, CameraPawnData->ZoomSpeed);
-		SpringArmComponent->TargetArmLength = InterpedZoom;		
+		SpringArmComponent->TargetArmLength = InterpedZoom;
 	}
 	
 }
