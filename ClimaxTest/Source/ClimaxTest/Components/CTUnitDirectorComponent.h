@@ -63,6 +63,7 @@ private:
 	UPROPERTY()
 	ACTPlayerController* CTPlayerController;
 
+	//Using a TSet since I dont care about the order of elements and this is faster than TArray<>.
 	UPROPERTY()
 	TSet<ACTCharacter*> SelectedUnits;
 

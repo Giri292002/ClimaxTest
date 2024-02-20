@@ -33,7 +33,7 @@ void UCTUnitDirectorComponent::BeginPlay()
 	MarqueeWidget = CreateWidget<UCTMarqueeWidget>(GetWorld(), MarqueeWidgetClass);
 
 	//Unreal has a built in get actors in rectange but the caveat is we can only use it in the draw hud event, so we need to pass on all the info to HUD and get back the selected actors.
-	//I am not a huge fan of how this going out of this class and then coming back in with the actor info. If I had more time and this was a proper production setting I would look into decoupling that HUD function from draw HUD
+	//I am not a huge fan of how this going out of this class and then coming back in with the actor info. If this was a proper production setting I would look into decoupling that HUD function from draw HUD
 	//and research how we can use it normally. Another method to go about this would be to calculate the 4 points of the box in the world space with the start mouse position and current mouse position and then do a box trace.
 	CTHUD = Cast<ACTHUD>(CTPlayerController->GetHUD());
 	CTHUD->OnMarqueeSelectDelegate.AddDynamic(this, &UCTUnitDirectorComponent::OnMarqueeSelectCallback);
