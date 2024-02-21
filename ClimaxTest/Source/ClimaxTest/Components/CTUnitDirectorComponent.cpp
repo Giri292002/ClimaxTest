@@ -122,7 +122,7 @@ void UCTUnitDirectorComponent::MoveUnits()
 
 	for (ACTCharacter* Unit : SelectedUnits)
 	{
-		Cast<ACTAIController>(Unit->GetController())->MoveToLocation(ProjectedLocation);
+		ICTUnitInterface::Execute_Move_Command(Unit->GetController(), ProjectedLocation.Location);
 	}
 }
 

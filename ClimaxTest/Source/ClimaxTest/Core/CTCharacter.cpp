@@ -56,3 +56,9 @@ void ACTCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 }
 
+void ACTCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	CTAIController = Cast<ACTAIController>(NewController);
+}
+
