@@ -49,9 +49,9 @@ A Top down RTS test
 - Currently we are allowing the player to move the units even if a formation may not be valid. For eg trying to make a line in a tight space. There is no way 10 units are fitting in a line in that corner. \
 If this is the case, currently only some number of units move. If by design this is okay then this works but if we want all the troops we selected to be in a formation we need to implement some kind of formation preview that will show where our troops will end up, if that doesn't exist we shouldn't even call move on any of the units.
 
-- Right now the formation data is doing some weird conversions to scale the params for the generators with the players. For example if we had a grid generator we could just have 2 params called width/height and we can just have a map of those values in the data. Right now its scaled by the number of units we have, so the int part of the map pair refers to the base value we need to multiply our number of units by. 
+- Right now the formation data is doing some weird conversions to scale the params for the generators with the players. Its scaled by the number of units we have, so the int part of the map pair refers to the base value we need to multiply our number of units by. 
 For eg: If its a circle formation the number of points on that circle is determined by int (which is 1) * Number of units, so n points will be generated. \
-I am ***really*** not happy with this implementation as its hard to understand and overengineered. If this was production we would have our own generators with standardized user friendly values.
+I am ***really*** not happy with this implementation as its hard to understand and overengineered. If this was production we would have our own generators with standardized user friendly values. For example if we had a grid generator we could just have 2 params called width/height and we can just have a map of those values in the data.
 
 - AI should have the ability to repath mid pathing. If its goal is obscured by some other pawn, it should break out of the formation and go to somewhere close.
 - AI should "push" other AI out of the way. Currently if we try to move an AI that is the middle of a circle formation, it can't get out.
