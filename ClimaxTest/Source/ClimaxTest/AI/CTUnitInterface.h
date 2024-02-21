@@ -44,4 +44,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void Wait_Command();
+
+	//Could add attack, chop wood command, build commands here
 };

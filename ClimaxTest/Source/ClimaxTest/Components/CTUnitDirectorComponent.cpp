@@ -8,6 +8,8 @@
 #include "../Core/CTPlayerController.h"
 #include "../Core/CTHUD.h"
 #include "../Widget/CTMarqueeWidget.h"
+#include "../Widget/CTFormationSelectionWidget.h"
+#include "../Gameplay/CTUnitFormation.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -31,6 +33,11 @@ void UCTUnitDirectorComponent::BeginPlay()
 	
 	CTPlayerController = Cast<ACTPlayerController>(UGameplayStatics::GetPlayerController(GetWorld(), 0));
 	MarqueeWidget = CreateWidget<UCTMarqueeWidget>(GetWorld(), MarqueeWidgetClass);
+
+	FormationShape = EUnitFormationShape::Grid;
+
+	FormationSelectionWidget = CreateWidget<UCTFormationSelectionWidget>(GetWorld(), CTFormationSelectionWidgetClass);
+	FormationSelectionWidget->SetUnitDirectorComponent(this);
 
 	//Unreal has a built in get actors in rectange but the caveat is we can only use it in the draw hud event, so we need to pass on all the info to HUD and get back the selected actors.
 	//I am not a huge fan of how this going out of this class and then coming back in with the actor info. If this was a proper production setting I would look into decoupling that HUD function from draw HUD
@@ -119,11 +126,26 @@ void UCTUnitDirectorComponent::MoveUnits()
 	}
 
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ArrowEffect, ProjectedLocation.Location);
-
-	for (ACTCharacter* Unit : SelectedUnits)
+	
+	ACTUnitFormation* UnitFormation = GetWorld()->SpawnActor<ACTUnitFormation>(UnitFormationSubclass, ProjectedLocation.Location, FRotator());
+	if (SelectedUnits.Num() > 1)
 	{
-		ICTUnitInterface::Execute_Move_Command(Unit->GetController(), ProjectedLocation.Location);
+		UnitFormation->MoveUnitsInFormation(SelectedUnits, FormationShape);
 	}
+	else
+	{
+		UnitFormation->MoveUnitsInFormation(SelectedUnits, EUnitFormationShape::Single);
+	}
+}
+
+void UCTUnitDirectorComponent::ToggleFormationSelectionWidget()
+{
+	if (FormationSelectionWidget->IsVisible())
+	{
+		FormationSelectionWidget->RemoveFromParent();
+		return;
+	}
+	FormationSelectionWidget->AddToViewport();
 }
 
 void UCTUnitDirectorComponent::OnMarqueeSelectCallback(TArray<ACTCharacter*> FoundActors)

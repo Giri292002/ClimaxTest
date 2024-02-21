@@ -70,6 +70,7 @@ void ACTCameraPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComponent->BindAction(SelectUnitAction, ETriggerEvent::Triggered, UnitDirectorComponent, &UCTUnitDirectorComponent::SelectUnit);
 		EnhancedInputComponent->BindAction(MarqueeSelectUnitAction, ETriggerEvent::Started, UnitDirectorComponent, &UCTUnitDirectorComponent::MarqueeSelectUnits);
 		EnhancedInputComponent->BindAction(MarqueeSelectUnitAction, ETriggerEvent::Completed, UnitDirectorComponent, &UCTUnitDirectorComponent::StopMarqueeSelectUnits);
+		EnhancedInputComponent->BindAction(FormationSelectWidgetAction, ETriggerEvent::Triggered, UnitDirectorComponent, &UCTUnitDirectorComponent::ToggleFormationSelectionWidget);
 	}
 }
 
@@ -118,15 +119,12 @@ void ACTCameraPawn::MoveCamera(const FInputActionValue& Value)
 	if (VectorValue.IsNearlyZero(0.005f))
 	{
 		return;
-	}
-		
-	UE_LOG(LogTemp, Log, TEXT("Moving: %s"), *Value.ToString());
+	}		
 	CameraTargetLocation = (RootComponent->GetForwardVector() * VectorValue.Y * CameraPawnData->MoveSpeed)+ (RootComponent->GetRightVector() * VectorValue.X * CameraPawnData->MoveSpeed) + CameraTargetLocation;
 }
 
 void ACTCameraPawn::ZoomCamera(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Log, TEXT("Zoom: %s"), *Value.ToString());
 	const float Zoom = Value.Get<float>() * CameraPawnData->ZoomSpeed;
 	TargetZoom = FMath::Clamp(Zoom + TargetZoom, CameraPawnData->MinZoom, CameraPawnData->MaxZoom);
 }

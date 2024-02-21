@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "../Gameplay/CTUnitFormation.h"
 #include "CTUnitDirectorComponent.generated.h"
 
 class ACTCharacter;
@@ -12,6 +13,8 @@ class UNiagaraSystem;
 class UCTMarqueeWidget;
 class FViewport;
 class ACTHUD;
+class ACTUnitFormation;
+class UCTFormationSelectionWidget;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class CLIMAXTEST_API UCTUnitDirectorComponent : public UActorComponent
@@ -28,6 +31,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "CT | FX")
 	TSubclassOf<UCTMarqueeWidget> MarqueeWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CT | AI | Formations")
+	TSubclassOf<ACTUnitFormation> UnitFormationSubclass;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "CT | AI | Formations")
+	TSubclassOf<UCTFormationSelectionWidget> CTFormationSelectionWidgetClass;
 
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -48,6 +57,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "CT | Units")
 	void MoveUnits();
 
+	UFUNCTION(BlueprintCallable, Category = "CT | Units")
+	void ToggleFormationSelectionWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "CT | Units")
+	void SetFormationType(EUnitFormationShape InShape) { FormationShape = InShape; }
+
+
+
 	UFUNCTION()
 	void OnMarqueeSelectCallback(TArray<ACTCharacter*> FoundActors);
 
@@ -62,6 +79,12 @@ private:
 
 	UPROPERTY()
 	ACTPlayerController* CTPlayerController;
+
+	UPROPERTY()
+	UCTFormationSelectionWidget* FormationSelectionWidget;
+
+	UPROPERTY()
+	EUnitFormationShape FormationShape;
 
 	//Using a TSet since I dont care about the order of elements and this is faster than TArray<>.
 	UPROPERTY()
