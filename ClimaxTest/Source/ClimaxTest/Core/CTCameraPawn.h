@@ -52,6 +52,9 @@ protected:
 	UInputAction* MarqueeSelectUnitAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
+	UInputAction* FormationSelectWidgetAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "CT | Input")
 	UInputMappingContext* DefaultInputContext;
 
 	UPROPERTY(EditDefaultsOnly, Category = "CT | Data")

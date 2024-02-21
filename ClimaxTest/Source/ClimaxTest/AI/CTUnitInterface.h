@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "CTUnitStates.h"
 #include "CTUnitInterface.generated.h"
 
 // This class does not need to be modified.
@@ -27,4 +28,22 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void Deselect();
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void SetUnitState(ECTUnitState NewUnitState);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	ECTUnitState GetUnitState();
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	FVector GetMoveToLocation();
+
+	// Commands
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void Move_Command(FVector& MoveToLocation);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void Wait_Command();
+
+	//Could add attack, chop wood command, build commands here
 };

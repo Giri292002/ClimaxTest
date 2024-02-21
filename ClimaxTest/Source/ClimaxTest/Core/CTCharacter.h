@@ -7,6 +7,8 @@
 #include "../AI/CTUnitInterface.h"
 #include "CTCharacter.generated.h"
 
+class ACTAIController;
+
 UCLASS()
 class CLIMAXTEST_API ACTCharacter : public ACharacter, public ICTUnitInterface
 {
@@ -35,4 +37,9 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void PossessedBy(AController* NewController) override;
+
+private:
+	UPROPERTY()
+	ACTAIController* CTAIController;
 };
